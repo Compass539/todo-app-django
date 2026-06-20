@@ -58,6 +58,12 @@
                 flex: 1;
             }
 
+            .card span:last-of-type{
+                font-size: 12px;
+                color:#888;
+                margin-left: 8px;
+            }
+
             .card button{
                 background: none;
                 border: none;
@@ -121,14 +127,17 @@
             const card = document.createElement('div');
             card.className ='card';
             const span = document.createElement('span');
+            const dueDateSpan = document.createElement('span');
             const button = document.createElement('button');
             const checkbox = document.createElement('input');
             checkbox.type ='checkbox';
             checkbox.checked = todo.completed;
             span.textContent = todo.title;
+            dueDateSpan.textContent = todo.due_date || '';
             button.textContent = '✕';
             card.appendChild(checkbox);
             card.appendChild(span);
+            card.appendChild(dueDateSpan);
             card.appendChild(button);
 
             checkbox.addEventListener('change', function(){
