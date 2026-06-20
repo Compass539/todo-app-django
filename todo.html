@@ -1,0 +1,196 @@
+<html>
+    <head>
+        <title>Todoリスト</title>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap" rel="stylesheet">
+        <style>
+            body{
+                font-family:'Noto Sans JP',sans-serif;
+                background-color:whitesmoke;
+                margin:0;
+                padding:20px;
+            }
+            .todo-input{
+                display:flex;
+                margin-bottom:20px;
+            }
+            input{
+                flex:1;
+                padding:8px;
+                border:1px solid #ccc;
+                border-radius:4px;
+            }
+            #add-btn{
+                background-color: black;
+                color: white;
+                padding:8px 16px;
+                border-radius: 4px;
+                border:none;
+            }
+           
+            .board{
+                display: flex;
+                gap: 16px;
+                margin-top: 20px;
+            }
+            .column{
+                background-color: #ebecf0;
+                border-radius: 8px;
+                padding: 16px;
+                min-width: 250px;
+                flex: 1;
+            }
+            .cards{
+                min-height: 100px;
+            }
+
+            .card{
+                background-color: white;
+                border-radius: 6px;
+                padding: 10px 12px;
+                margin-bottom: 8px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            }
+
+            .card span{
+                flex: 1;
+            }
+
+            .card button{
+                background: none;
+                border: none;
+                color: #ff4444;
+                cursor: pointer;
+                font-size: 14px;
+                margin-left: auto;
+            }
+
+            .column h2{
+                font-size: 14px;
+                font-weight: bold;
+                margin:0 0 12px 0;
+                color: #333;
+            }
+
+        </style>
+    </head>
+    <body>
+        <h1>Todoリスト</h1>
+        <div class="todo-input">
+            <input type="text" id="todo-input" placeholder="タスクを入力...">
+            <select id="category-input">
+                <option value="">カテゴリなし</option>
+                <option value="仕事">仕事</option>
+                <option value="プライベート">プライベート</option>
+                <option value="その他">その他</option>
+            </select>
+            <input type="date" id="due-date-input">
+            <button id="add-btn">追加</button>
+        </div>
+        <div class ="board">
+            <div class ="column" id="col-仕事">
+                    <h2>仕事</h2>
+                    <div class ="cards"></div>
+            </div>
+            <div class ="column" id="col-プライベート">
+                <h2>プライベート</h2>
+                <div class ="cards"></div>
+            </div>
+            <div class="column" id="col-その他">
+                <h2>その他</h2>
+                <div class="cards"></div>
+            </div>
+        </div>
+
+    <script>
+        fetch('http://127.0.0.1:8000/api/todos/')
+            .then(response => response.json())
+            .then(data => {
+                data.sort(function(a,b){
+                    return a.completed - b.completed;
+                });
+                data.forEach(function(todo){
+                    renderTodo(todo)
+                })
+            })
+            
+        function renderTodo(todo){
+            const url = 'http://127.0.0.1:8000/api/todos/' + todo.id + '/';
+            const card = document.createElement('div');
+            card.className ='card';
+            const span = document.createElement('span');
+            const button = document.createElement('button');
+            const checkbox = document.createElement('input');
+            checkbox.type ='checkbox';
+            checkbox.checked = todo.completed;
+            span.textContent = todo.title;
+            button.textContent = '✕';
+            card.appendChild(checkbox);
+            card.appendChild(span);
+            card.appendChild(button);
+
+            checkbox.addEventListener('change', function(){
+                fetch(url, {
+                    method:'PATCH',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({completed:checkbox.checked})
+                });
+            });
+
+            button.addEventListener('click',function(){
+                fetch(url,{
+                    method:'DELETE',
+                })
+                    .then(() =>{
+                        card.remove();
+                    });
+            })
+
+            const columnId ='col-' + (todo.category  || 'その他');
+            const column = document.getElementById(columnId);
+            const cards = column.querySelector('.cards');
+            cards.appendChild(card);
+        }
+
+        const input = document.getElementById('todo-input');
+        const addBtn = document.getElementById('add-btn');
+        const categoryInput = document.getElementById('category-input');
+        const dueDateInput = document.getElementById('due-date-input');
+
+        function addTodo(){
+            
+        if(input.value === ''){
+            return;
+        }
+        fetch('http://127.0.0.1:8000/api/todos/',{
+            method:'POST',
+            headers:{
+                'Content-Type':'application/json'
+            },
+            body:JSON.stringify({
+                title:input.value,
+                category:categoryInput.value,
+                due_date:dueDateInput.value || null
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                renderTodo(data);
+            });
+        input.value='';
+        }
+      
+
+        input.addEventListener('keydown',function(event){
+            if(event.key === 'Enter'){
+                addTodo();        
+        }});
+
+        addBtn.addEventListener('click',addTodo);
+
+       
+    </script>
+    </body>
+</html>
