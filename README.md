@@ -3,7 +3,9 @@
 タスクをカテゴリ毎に分け、完了・未完了を判別可能な、Trello風のTodoアプリです。
 バックエンドはDjango REST Frameworkで構築し、フロントエンドとAPIで連携しています。
 
----
+##　デモ
+https://todo-app-django-tawny.vercel.app
+
 
 ## v2.0 React版 (最新)
 
