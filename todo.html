@@ -111,7 +111,7 @@
         </div>
 
     <script>
-        fetch('todo-app-django-sjp6.onrender.com/api/todos/')
+        fetch('https://todo-app-django-sjp6.onrender.com/api/todos/')
             .then(response => response.json())
             .then(data => {
                 data.sort(function(a,b){
@@ -123,7 +123,7 @@
             })
             
         function renderTodo(todo){
-            const url = 'todo-app-django-sjp6.onrender.com/api/todos/' + todo.id + '/';
+            const url = 'https://todo-app-django-sjp6.onrender.com/api/todos/' + todo.id + '/';
             const card = document.createElement('div');
             card.className ='card';
             const span = document.createElement('span');
@@ -173,7 +173,7 @@
         if(input.value === ''){
             return;
         }
-        fetch('todo-app-django-sjp6.onrender.com/api/todos/',{
+        fetch('https://todo-app-django-sjp6.onrender.com/api/todos/',{
             method:'POST',
             headers:{
                 'Content-Type':'application/json'

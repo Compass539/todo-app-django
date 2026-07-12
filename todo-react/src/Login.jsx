@@ -12,7 +12,7 @@ function Login({ onLogin, onShowRegister }) {
       return;
     }
     setLoading(true);
-    const response = await fetch('todo-app-django-sjp6.onrender.com/api/token/', {
+    const response = await fetch('https://todo-app-django-sjp6.onrender.com/api/token/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
