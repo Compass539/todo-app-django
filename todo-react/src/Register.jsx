@@ -13,7 +13,7 @@ function Register({ onRegister }) {
       return;
     }
     setLoading(true);
-    const response = await fetch('http://127.0.0.1:8000/api/register/', {
+    const response = await fetch('todo-app-django-sjp6.onrender.com/api/register/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),

@@ -57,7 +57,7 @@ function App() {
   // ログイン後にTodo一覧を取得
   useEffect(() => {
     if (!token) return;
-    fetch('http://127.0.0.1:8000/api/todos/', {
+    fetch('todo-app-django-sjp6.onrender.com/api/todos/', {
       headers: { 'Authorization': `Bearer ${token}` },
     })
       .then((res) => (res.ok ? res.json() : []))
@@ -69,7 +69,7 @@ function App() {
 
   // Todo追加
   function addTodo({ title, category, dueDate }) {
-    fetch('http://127.0.0.1:8000/api/todos/', {
+    fetch('todo-app-django-sjp6.onrender.com/api/todos/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -83,7 +83,7 @@ function App() {
 
   // Todo削除
   function deleteTodo(todoToDelete) {
-    fetch(`http://127.0.0.1:8000/api/todos/${todoToDelete.id}/`, {
+    fetch(`todo-app-django-sjp6.onrender.com/api/todos/${todoToDelete.id}/`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` },
     }).then(() => setTodos(todos.filter((t) => t !== todoToDelete)));
@@ -91,7 +91,7 @@ function App() {
 
   // 完了切り替え
   function toggleTodo(todo) {
-    fetch(`http://127.0.0.1:8000/api/todos/${todo.id}/`, {
+    fetch(`todo-app-django-sjp6.onrender.com/api/todos/${todo.id}/`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -105,7 +105,7 @@ function App() {
 
   // タイトル編集
   function editTodo(todo, newTitle) {
-    fetch(`http://127.0.0.1:8000/api/todos/${todo.id}/`, {
+    fetch(`todo-app-django-sjp6.onrender.com/api/todos/${todo.id}/`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
