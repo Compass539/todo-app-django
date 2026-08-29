@@ -1,110 +1,69 @@
 import { useState } from 'react';
+import { CATEGORIES } from './categories';
+import { btnPrimaryClass, tagAccentClass, tagOutlineClass, tagNeutralClass } from './ui';
 
-// カテゴリ選択肢
-const CATEGORY_OPTIONS = [
-  { value: '仕事',        label: '💼 仕事' },
-  { value: 'プライベート', label: '🏠 プライベート' },
-  { value: 'その他',      label: '📦 その他' },
-  { value: '',            label: '📋 カテゴリなし' },
-];
-
-function TodoForm({ onAdd, activeCategory }) {
-  const [isOpen,     setIsOpen]     = useState(false);
+// 一覧最上部に1行で開くタスク追加フォーム。開閉は App.jsx 側で管理する。
+function TodoForm({ onAdd, onClose, activeCategory }) {
   const [inputValue, setInputValue] = useState('');
-  const [category,   setCategory]   = useState(activeCategory || '');
-  const [dueDate,    setDueDate]    = useState('');
+  const [category, setCategory] = useState(activeCategory || '');
+  const [dueDate, setDueDate] = useState('');
 
-  // フォームを開くとき、選択中カテゴリをデフォルトにセット
-  function handleOpen() {
-    setCategory(activeCategory || '');
-    setIsOpen(true);
-  }
-
-  // 送信処理
   function handleSubmit() {
     if (inputValue.trim() === '') return;
     onAdd({ title: inputValue.trim(), category, dueDate });
     setInputValue('');
     setCategory(activeCategory || '');
     setDueDate('');
-    setIsOpen(false);
+    onClose();
   }
 
-  // キーボード操作
   function handleKeyDown(e) {
-    if (e.key === 'Enter')  handleSubmit();
-    if (e.key === 'Escape') setIsOpen(false);
+    if (e.key === 'Enter') handleSubmit();
+    if (e.key === 'Escape') onClose();
   }
 
-  // ボタンだけ表示（折りたたみ時）
-  if (!isOpen) {
-    return (
-      <button
-        onClick={handleOpen}
-        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg
-          bg-indigo-500 hover:bg-indigo-600 active:scale-95
-          text-white text-sm font-semibold transition-all duration-150 shadow-sm"
-      >
-        <span className="text-base leading-none">＋</span>
-        <span>タスクを追加</span>
-      </button>
-    );
-  }
-
-  // フォーム展開時
   return (
-    <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 space-y-2">
+    <div
+      className="flex min-h-[44px] flex-wrap items-center gap-3 rounded-lg border-2 border-accent-400 bg-neutral-100 px-4 py-2 shadow-md"
+      onKeyDown={handleKeyDown}
+    >
+      <span className="h-[19px] w-[19px] shrink-0 rounded-full border-[2.75px] border-neutral-400" />
 
-      {/* タイトル入力 */}
       <input
         type="text"
-        placeholder="タスク名を入力..."
+        placeholder="タスク名を入力…"
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
-        onKeyDown={handleKeyDown}
         autoFocus
-        className="w-full text-sm px-3 py-1.5 rounded-lg border border-indigo-200 bg-white
-          outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all"
+        className="min-w-[180px] flex-1 bg-transparent text-[15px] text-text outline-none placeholder:text-neutral-600"
       />
 
-      {/* カテゴリ選択 */}
-      <select
-        value={category}
-        onChange={(e) => setCategory(e.target.value)}
-        className="w-full text-sm px-2 py-1.5 rounded-lg border border-indigo-200 bg-white
-          outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all"
-      >
-        {CATEGORY_OPTIONS.map(({ value, label }) => (
-          <option key={value} value={value}>{label}</option>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {CATEGORIES.map(({ key, label, icon }) => (
+          <button
+            key={key || 'none'}
+            type="button"
+            onClick={() => setCategory(key)}
+            className={key === category ? tagAccentClass : tagOutlineClass}
+          >
+            {icon} {label}
+          </button>
         ))}
-      </select>
-
-      {/* 期限日 */}
-      <input
-        type="date"
-        value={dueDate}
-        onChange={(e) => setDueDate(e.target.value)}
-        className="w-full text-sm px-2 py-1.5 rounded-lg border border-indigo-200 bg-white
-          outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all"
-      />
-
-      {/* ボタン群 */}
-      <div className="flex gap-2">
-        <button
-          onClick={handleSubmit}
-          className="flex-1 py-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-600
-            text-white text-sm font-semibold transition-colors"
-        >
-          追加
-        </button>
-        <button
-          onClick={() => setIsOpen(false)}
-          className="flex-1 py-1.5 rounded-lg border border-indigo-200 bg-white
-            text-indigo-500 text-sm font-medium hover:bg-indigo-50 transition-colors"
-        >
-          キャンセル
-        </button>
       </div>
+
+      <label className={`${tagNeutralClass} cursor-pointer`}>
+        📅
+        <input
+          type="date"
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
+          className="w-[86px] cursor-pointer bg-transparent outline-none"
+        />
+      </label>
+
+      <button type="button" onClick={handleSubmit} className={btnPrimaryClass}>
+        追加
+      </button>
     </div>
   );
 }

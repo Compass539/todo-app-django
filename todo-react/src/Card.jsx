@@ -1,16 +1,18 @@
 import { useState } from 'react';
+import { isOverdue } from './todoUtils';
 
-function Card({ todo, onDelete, onToggle, onEdit, accentColor }) {
+function formatShortDate(dateStr) {
+  const [, m, d] = dateStr.split('-');
+  return `${m}-${d}`;
+}
+
+// タスク1件＝高さ44px（スマホは48px）のピル行。
+function Card({ todo, onDelete, onToggle, onEdit }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(todo.title);
 
-  // 期限切れ判定
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const due       = todo.due_date ? new Date(todo.due_date) : null;
-  const isOverdue = due && due < today && !todo.completed;
+  const overdue = isOverdue(todo);
 
-  // 編集を保存
   function handleSave() {
     if (editValue.trim() === '') {
       setEditValue(todo.title);
@@ -20,97 +22,79 @@ function Card({ todo, onDelete, onToggle, onEdit, accentColor }) {
     setIsEditing(false);
   }
 
-  // キーボード操作
   function handleKeyDown(e) {
-    if (e.key === 'Enter')  handleSave();
+    if (e.key === 'Enter') handleSave();
     if (e.key === 'Escape') {
       setEditValue(todo.title);
       setIsEditing(false);
     }
   }
 
-  // カードの左アクセントバーの色
-  const barColor = accentColor?.bar || 'bg-indigo-500';
+  const rowClass = todo.completed
+    ? 'bg-accent-2-100 hover:bg-accent-2-200'
+    : overdue
+      ? 'bg-accent-200 hover:bg-accent-300'
+      : 'bg-neutral-100 hover:bg-neutral-200';
+
+  const titleClass = todo.completed
+    ? 'text-accent-2-800 line-through'
+    : overdue
+      ? 'font-semibold text-accent-900'
+      : 'font-semibold text-text';
+
+  const dateClass = todo.completed
+    ? 'text-accent-2-700'
+    : overdue
+      ? 'font-bold text-accent-800'
+      : 'text-neutral-700';
 
   return (
     <div
-      className={`group relative bg-white rounded-xl border shadow-sm
-        hover:shadow-md hover:-translate-y-0.5 transition-all duration-200
-        ${todo.completed ? 'opacity-60 bg-gray-50' : 'border-gray-200'}
-        ${isOverdue ? 'border-red-200' : ''}
-      `}
+      className={`group flex min-h-[48px] items-center gap-3 rounded-full px-4 transition-colors md:min-h-[44px] ${rowClass}`}
     >
-      {/* 左アクセントバー */}
-      <div
-        className={`absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl ${
-          isOverdue ? 'bg-red-400' : barColor
+      <button
+        type="button"
+        onClick={() => onToggle(todo)}
+        title={todo.completed ? '未完了に戻す' : '完了にする'}
+        className={`flex h-[19px] w-[19px] shrink-0 items-center justify-center rounded-full text-[11px] text-white ${
+          todo.completed ? 'bg-accent-2-500' : `border-[2.75px] ${overdue ? 'border-accent-600' : 'border-neutral-400'}`
         }`}
-      />
+      >
+        {todo.completed && '✓'}
+      </button>
 
-      <div className="pl-5 pr-3 py-3.5">
-        <div className="flex items-center gap-3">
+      {isEditing ? (
+        <input
+          type="text"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={handleKeyDown}
+          autoFocus
+          className="min-w-0 flex-1 rounded-full border-2 border-accent-400 bg-white px-2 py-0.5 text-[15px] outline-none"
+        />
+      ) : (
+        <span
+          onClick={() => !todo.completed && setIsEditing(true)}
+          title={todo.completed ? '' : 'クリックで編集'}
+          className={`min-w-0 flex-1 truncate text-[15px] ${titleClass} ${!todo.completed ? 'cursor-pointer' : ''}`}
+        >
+          {todo.title}
+        </span>
+      )}
 
-          {/* チェックボックス */}
-          <input
-            type="checkbox"
-            checked={todo.completed}
-            onChange={() => onToggle(todo)}
-            className="accent-indigo-500 w-4 h-4 shrink-0 cursor-pointer"
-          />
+      {todo.due_date && (
+        <span className={`shrink-0 text-[12.5px] ${dateClass}`}>{formatShortDate(todo.due_date)}</span>
+      )}
 
-          {/* タイトル（通常 or 編集モード） */}
-          {isEditing ? (
-            <input
-              type="text"
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              onBlur={handleSave}
-              onKeyDown={handleKeyDown}
-              autoFocus
-              className="flex-1 text-sm font-medium px-2 py-0.5 border border-indigo-400
-                rounded-lg outline-none ring-2 ring-indigo-100"
-            />
-          ) : (
-            <span
-              onClick={() => !todo.completed && setIsEditing(true)}
-              title={todo.completed ? '' : 'クリックで編集'}
-              className={`flex-1 text-left text-sm font-medium cursor-pointer ${
-                todo.completed
-                  ? 'line-through text-gray-400'
-                  : 'text-gray-800 hover:text-indigo-600 transition-colors'
-              }`}
-            >
-              {todo.title}
-            </span>
-          )}
-
-          {/* 削除ボタン（ホバー時に表示） */}
-          <button
-            onClick={() => onDelete(todo)}
-            className="opacity-0 group-hover:opacity-100 text-gray-300
-              hover:text-red-500 hover:bg-red-50 text-xs w-6 h-6 rounded-lg
-              flex items-center justify-center transition-all duration-150 shrink-0"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* 期限日バッジ */}
-        {todo.due_date && (
-          <div className="mt-2 ml-7 flex justify-start">
-            <span
-              className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
-                isOverdue
-                  ? 'bg-red-100 text-red-600'
-                  : 'bg-indigo-50 text-indigo-500'
-              }`}
-            >
-              📅 {todo.due_date}
-              {isOverdue && <span className="ml-0.5">⚠️</span>}
-            </span>
-          </div>
-        )}
-      </div>
+      <button
+        type="button"
+        onClick={() => onDelete(todo)}
+        title="削除"
+        className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-lg text-[12px] text-neutral-500 opacity-0 transition-opacity hover:bg-accent-100 hover:text-accent-700 group-hover:opacity-100 focus-visible:opacity-100"
+      >
+        ✕
+      </button>
     </div>
   );
 }
