@@ -1,0 +1,148 @@
+# Handoff: TaskBoard リデザイン（採用案 1d）
+
+## Overview
+既存の TaskBoard（Django REST Framework + React/Tailwind）の UI を、Organic デザインシステム（クリーム地＋テラコッタ／セージ、Caprasimo + Figtree、大きな角丸とピル形状）で刷新する。採用案は **1d：細い左レール＋期限グルーピング／高密度**。
+
+対象範囲：
+1. タスク一覧（デスクトップ）
+2. タスク追加フォーム展開時
+3. ログイン／新規登録
+4. スマホ表示
+5. カレンダー画面（新規機能。README「今後の展望」由来）
+
+機能仕様は現行のまま（JWT 認証、カテゴリ、期限、インライン編集、検索、期限切れ警告、Discord 通知）。変更点は情報構造とビジュアル。
+
+## About the Design Files
+このバンドルの HTML ファイルは **デザインリファレンス**（見た目と挙動を示すプロトタイプ）であり、そのまま本番コードとして貼り付けるものではない。既存の `todo-react`（React 19 + Vite + Tailwind CSS v4）環境の作法に沿って作り直すこと。Tailwind を使う場合、下記トークンを `@theme` のカスタムカラー／スペーシングとして定義し、任意値（`bg-[#c67139]` 等）の直書きは避ける。
+
+## Fidelity
+**High-fidelity（hifi）**。色・タイポ・余白・角丸・影は下記の値で確定。ピクセル忠実に再現してよい。
+
+## 情報構造の変更点（現行 → 1d）
+| | 現行 | 1d |
+| --- | --- | --- |
+| ナビ | 幅 224px の白いサイドバー（カテゴリ・サマリー・ログアウト） | 幅 80px の濃色レール（アイコンのみ、44px 円形） |
+| 一覧の並び | 選択カテゴリのタスクを1列 | 選択カテゴリ内を **期限切れ / 今週 / 完了** でグルーピング |
+| 行 | カード（角丸12px、左に6pxバー、期限バッジは下段） | 高さ 44px のピル行（丸チェック・タイトル・右端に日付） |
+| サマリー | サイドバー内のテキスト3行 | 右カラムに進捗リング（conic-gradient）＋サマリー＋通知説明 |
+| 期限切れ表現 | 赤（red-100/red-500） | テラコッタ ramp（accent-200 地／accent-900 文字） |
+| 完了表現 | opacity .6 ＋ 取り消し線 | セージ ramp（accent-2-100 地／accent-2-800 文字）＋ 取り消し線 |
+
+赤・緑は使わない。期限切れ＝テラコッタ、完了＝セージ、通常＝ニュートラルの3系統で表す。
+
+## Design Tokens
+`organic-styles.css`（同梱、design system の唯一のスタイルシート）が正。抜粋：
+
+**色**
+- 背景 `--color-bg` #f5ead8 / サーフェス `--color-surface` #ebddc5 / 文字 `--color-text` #201e1d
+- アクセント（テラコッタ）`--color-accent` #c67139、ramp 100→900: #fff2eb, #ffe1d0, #ffc6a5, #f6a06b, #d67f48, #b2622d, #8c491a, #643312, #402310
+- 第2アクセント（セージ）`--color-accent-2` #7a8a5e、ramp 100→900: #f0fae1, #e1eecc, #ccdbb2, #aebf92, #8fa073, #728157, #56633f, #3d472b, #272e1b
+- ニュートラル ramp 100→900: #f9f4ed, #eee7db, #dcd3c4, #c0b6a5, #a19786, #82796a, #645c50, #474238, #2e2b25
+
+**タイポ**
+- 見出し `--font-heading` "Caprasimo" 400（Google Fonts）
+- 本文 `--font-body` "Figtree" 400/600/700
+- 実測値：ページ見出し 32px/line-height 1、カレンダー見出し 32px、パネル見出し 19px、行タイトル 15px/600、日付 12.5px、グループ見出し 11.5px/700・letter-spacing .09em・uppercase、補助文 13px
+
+**スペーシング**（1.10倍スケール）`--space-1` 4.4px / `-2` 8.8px / `-3` 13.2px / `-4` 17.6px / `-6` 26.4px / `-8` 35.2px
+
+**角丸** `--radius-sm` 8px / `--radius-md` 16px / `--radius-lg` 28px / ボタン・入力・行は `999px`
+
+**影** `--shadow-sm` 0 1px 2px rgba(46,43,37,.14) / `--shadow-md` 0 3px 10px rgba(46,43,37,.16) / `--shadow-lg` 0 12px 32px rgba(46,43,37,.22)
+
+**状態**：hover は ramp を1段、pressed はさらに1段（明地なら `--color-accent-600`）。フォーカスは `:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px }`。無効は opacity .45。ブラウザ既定のフォーカスリングを残さない。
+
+## Screens / Views
+
+### 1. タスク一覧（デスクトップ・1d）
+**目的**：選択カテゴリのタスクを期限の緊急度順に把握し、その場で完了・編集する。
+
+**レイアウト**：`display:flex`、高さ 100vh。左レール 80px 固定 ＋ 右 main（`flex:1`、`padding: var(--space-6) var(--space-6) 0`）。main 内は上部ヘッダー ＋ 下部 `display:flex; gap:var(--space-6)`（左：一覧 `flex:1; max-width:620px`、右：パネル 236px 固定）。
+
+**レール**：背景 `--color-accent-800` #643312。縦 flex・`align-items:center`・`gap:var(--space-3)`・`padding:var(--space-4) 0`。
+- ブランド：44px 円、背景 `--color-accent-400`、文字 `--color-accent-900`、Caprasimo 19px、"T"
+- カテゴリ 4件：44px 円、選択中は背景 `--color-accent-100`、非選択は `rgba(255,255,255,.12)`。中身は絵文字 19px（💼 仕事 / 🏠 プライベート / 📦 その他 / 📋 カテゴリなし）
+- 下端：`flex:1` のスペーサー ＋ アバター 44px 円、背景 `--color-accent-2-500`、白 14px/700、ユーザー名の頭文字
+- 実装時：`title` 属性 or ツールチップでカテゴリ名を必ず補う（アイコンのみのため）
+
+**ヘッダー**：左に h1（Caprasimo 32px、「💼 仕事」）＋ 補助文 13px `--color-neutral-700`「4タスク · 未完了 3 · 完了 1」。右に検索ピル（幅180px、`padding:8px var(--space-4)`、背景 `--color-neutral-100`、角丸999、プレースホルダ「検索…」13px `--color-neutral-600`）＋ 主ボタン `.btn.btn-primary`「＋ タスクを追加」。下マージン `var(--space-4)`。
+
+**グループ見出し**：11.5px/700・letter-spacing .09em・uppercase。期限切れ＝`--color-accent-700`、今週＝`--color-neutral-600`、完了＝`--color-accent-2-700`。テキストは「期限切れ · 2」「今週 · 3」「完了 · 1」。上マージン `var(--space-3)`、下 `var(--space-1)`。
+
+**タスク行（ピル）**：`display:flex; align-items:center; gap:var(--space-3); height:44px; padding:0 var(--space-4); border-radius:999px`。行間 `var(--space-2)`。
+- 通常：背景 `--color-neutral-100`、タイトル 15px/600 `--color-text`、右端日付 12.5px `--color-neutral-700`（`MM-DD`）
+- 期限切れ：背景 `--color-accent-200`、タイトル `--color-accent-900`、日付 12.5px/700 `--color-accent-800`
+- 完了：背景 `--color-accent-2-100`、タイトル 15px `--color-accent-2-800` ＋ `line-through`、日付 `--color-accent-2-700`
+- チェック：19px 円。未完了は `border:2.75px solid`（通常 `--color-neutral-400` / 期限切れ `--color-accent-600`）。完了は背景 `--color-accent-2-500` に白の ✓ 11px
+- hover：背景を ramp 1段濃く（neutral-100→200、accent-200→300）＋ 削除アイコンを右端に表示（現行同様ホバー時のみ）
+- タイトルクリックでインライン編集（現行 Card.jsx の挙動を維持。Enter 保存 / Escape 取消 / 空文字は元に戻す）
+
+**右パネル**（幅236px、`gap:var(--space-3)`）
+- 進捗カード：背景 `--color-surface`、`border-radius:var(--radius-lg)`、`padding:var(--space-4)`。120px 円 `conic-gradient(var(--color-accent-2-500) 0turn <p>turn, var(--color-neutral-300) <p>turn 1turn)`、中央に 88px の背景色円、Caprasimo 26px で「40%」＋ 11px「完了」。下に 13px `--color-neutral-700`「10件のうち4件が完了」
+- サマリーカード：背景 `--color-neutral-100`、角丸 lg。行は `合計タスク / 完了済み / 期限切れ`、ラベル 13.5px `--color-neutral-700`、値 Caprasimo 19px（合計 `--color-text`、完了 `--color-accent-2-700`、期限切れ `--color-accent-700`）
+- 通知カード：背景 `--color-accent-100`、12.5px `--color-accent-800`「期限が1週間以内のタスクは Discord に通知されます。」
+
+### 2. タスク追加フォーム展開時
+一覧の最上部に1行で開く（現行のサイドバー内展開を置き換え）。
+`min-height:44px; padding:var(--space-2) var(--space-4); border-radius:var(--radius-lg); background:var(--color-neutral-100); box-shadow:var(--shadow-md); border:2px solid var(--color-accent-400); display:flex; gap:var(--space-3); flex-wrap:wrap`。
+中身：丸チェック（無効表示）／タイトル入力 15px `flex:1; min-width:180px`（プレースホルダ「タスク名を入力…」）／カテゴリを `.tag.tag-accent` のチップ（選択中）＋ 未選択は `.tag.tag-outline`／期限チップ `.tag.tag-neutral`「📅 08-31」／`.btn.btn-primary`「追加」（`padding:6px 18px`）。
+挙動：Enter で送信、Escape で閉じる、空文字は無視（現行 TodoForm.jsx と同じ）。カテゴリ初期値は選択中カテゴリ。
+
+### 3. ログイン／新規登録
+中央寄せ、背景 `--color-bg`。カード幅 340px、背景 `--color-neutral-100`、`border-radius:var(--radius-lg)`、`overflow:hidden`、`box-shadow:var(--shadow-lg)`。
+- 上帯：背景 `--color-accent-800`、`padding:var(--space-6) var(--space-6) var(--space-4)`。44px 円（`--color-accent-400` 地／`--color-accent-900` の "T"）、h1 Caprasimo 28px `--color-accent-100`「TaskBoard」、補助文 13.5px `--color-accent-300`「タスクをスマートに管理しよう」
+- 本体：`padding:var(--space-6)`、`gap:var(--space-3)`。ラベル 13px/600 `--color-neutral-800`、入力は `.input`（ピル）、主ボタン `.btn.btn-primary.btn-block`
+- 下部リンク 12px `--color-neutral-700` ＋ 「新規登録」を `--color-accent-700`/700
+- 新規登録：上帯は h1 26px「新規登録」＋「アカウントを作成しよう」。成功メッセージは `background:var(--color-accent-2-100); color:var(--color-accent-2-800); border-radius:var(--radius-md); padding:var(--space-2) var(--space-3); font-size:12.5px`。エラーは同形状で `--color-accent-200` 地／`--color-accent-900` 文字。副ボタン `.btn.btn-secondary.btn-block`「ログインに戻る」
+- API は現行のまま（`/api/token/`、`/api/register/`）。ローディング中はボタン文言を「確認中...」「登録中...」に変え disabled（opacity .45）
+
+### 4. スマホ表示（402×874 想定）
+- レールを下部タブバーに変換：背景 `--color-surface`、`padding:var(--space-3) var(--space-4) var(--space-6)`、`justify-content:space-between`。タブは 52px 円（選択中は `--color-accent-200` 地）、右端に 56px の追加ボタン（`--color-accent-500`、白の ＋ 26px、`box-shadow:var(--shadow-md)`）
+- ヘッダー：h1 Caprasimo 28px、補助文 13px、検索ピル（`padding:11px var(--space-4)`、14px）。セーフエリア分の上余白を確保（デザインでは 70px）
+- 行はデスクトップと同じピルだが `min-height:48px`（タップ領域 44px 以上）
+- グループ・色分けはデスクトップと同一。一覧は縦スクロール、タブバーは固定
+
+### 5. カレンダー画面（新規）
+**目的**：期限日を月単位で俯瞰し、日を選んでその日のタスクを見る。
+
+- レールはタスク一覧と同一（📅 が選択状態）
+- ヘッダー：h1 Caprasimo 32px「2026年 8月」＋ 前後移動の 32px 円ボタン（`--color-neutral-100` 地、‹ ›）。右に表示切替のセグメント（`--color-neutral-100` 地・`padding:3px`・角丸999、選択中 `--color-accent-500` 地／白 13px/700、「月 / 週 / リスト」）＋ `.btn.btn-primary`「＋ タスクを追加」
+- 月グリッド：`display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:1fr; gap:6px`。曜日見出し 11.5px/700（日＝`--color-accent-700`、土＝`--color-accent-2-700`、平日＝`--color-neutral-600`）
+- 日セル：`border-radius:var(--radius-md); background:var(--color-neutral-100); padding:7px 9px`。日付 12.5px/700 `--color-neutral-700`。当月外は背景なし・文字 `--color-neutral-400`
+- 今日：背景 `--color-accent-100` ＋ `box-shadow:inset 0 0 0 2px var(--color-accent-400)`、文字 `--color-accent-800`
+- 選択日：`box-shadow:inset 0 0 0 2px var(--color-accent-2-400)`
+- タスクチップ：11px/600、`padding:2px 7px`、角丸999、1行省略（`overflow:hidden; text-overflow:ellipsis; white-space:nowrap`）。通常＝`--color-neutral-200`/`--color-neutral-800`、期限切れ＝`--color-accent-200`/`--color-accent-900`、完了＝`--color-accent-2-200`/`--color-accent-2-800`（先頭に ✓）。3件以上は「+N件」
+- 右パネル（236px）：選択日カード（`--color-surface` 地、Caprasimo 19px の日付見出し ＋ 40px のピル行 ＋ カテゴリ 12.5px）／期限切れまとめ（`--color-accent-100` 地）／通知説明（`--color-neutral-100` 地）
+
+## Interactions & Behavior
+- カテゴリ切替：レールのアイコン。選択状態は背景で示す（`--color-accent-100`）
+- 完了切替：丸チェックのクリック → `PATCH /api/todos/:id/ {completed}`。行はグループ間を移動する（完了グループへ）ので、200ms 程度の位置トランジションを付けると分かりやすい
+- インライン編集：タイトルクリック → 入力に切替（枠 `2px solid var(--color-accent-400)`）。Enter 保存 / Escape 取消 / blur 保存 → `PATCH {title}`
+- 削除：行 hover で右端に ✕（`--color-neutral-400`、hover で `--color-accent-700`）→ `DELETE`
+- 検索：入力ごとに大文字小文字を無視して絞り込み（現行同様、クライアント側フィルタ）
+- ローディング：一覧の位置に 44px のピル型スケルトン3本（`--color-neutral-200`、`opacity` 0.6↔1 の 1.2s ループ）
+- 空状態：中央に 15px `--color-neutral-700`「タスクがありません」＋ 13px `--color-neutral-600`「右上のボタンから追加してみましょう」（現行の絵文字 📭 を使ってもよい）
+- 期限切れ判定：現行どおり `!completed && due_date < 今日0時`
+- トランジションは 150–200ms・ease-out。hover は色のみ、位置移動は伴わない（現行の `-translate-y-0.5` は廃止）
+- レスポンシブ：〜768px は 4 のスマホレイアウト（右パネルは一覧の下にスタック）、769px 以上はデスクトップ
+
+## State Management
+現行 App.jsx の state をそのまま流用できる：`todos`, `searchText`, `isLoading`, `token`, `showRegister`, `activeKey`。1d で追加が必要なもの：
+- `view`: `'list' | 'calendar'`（レールの 📅 で切替）
+- `calendarMonth`: 表示中の年月（Date）
+- `selectedDate`: 選択日（カレンダー右パネル用）
+- グルーピングは派生値で算出（`overdue` / `thisWeek` / `later` / `completed`）。API 追加は不要
+
+データ：`Todo { id, title, completed, category, due_date }`（`todos/models.py`）。エンドポイントは現行のまま。
+
+## Assets
+- 画像アセットなし。カテゴリは既存の絵文字（💼 🏠 📦 📋 📅 ✓ ＋）を流用
+- フォントは Google Fonts（Caprasimo / Figtree）。`organic-styles.css` 冒頭の `@import` で読み込む
+- 同梱の `browser-window.jsx` / `ios-frame.jsx` は**モックアップ表示用の枠**。製品コードには含めない
+
+## Files
+- `TaskBoard 採用案 1d.dc.html` — 採用案。1d 一覧／追加フォーム、1e ログイン・新規登録、1f スマホ、1g カレンダー
+- `TaskBoard リデザイン案.dc.html` — 参考：現状の再現（1a）と却下案（1b/1c）を含む比較キャンバス
+- `organic-styles.css` — デザインシステムのトークンとコンポーネントクラス（`.btn` `.tag` `.input` `.card` 等）。値の正
+- `browser-window.jsx` / `ios-frame.jsx` — 表示用の枠のみ
+- 参照元リポジトリ：`Compass539/todo-app-django`（`todo-react/src/App.jsx`, `Card.jsx`, `TodoForm.jsx`, `Login.jsx`, `Register.jsx`, `todos/models.py`）
