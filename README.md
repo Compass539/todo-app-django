@@ -12,6 +12,7 @@ https://todo-app-django-tawny.vercel.app
 ![Todoリスト](./v2_Todolist.png)
 ![ログイン](./login.png)
 ![新規登録](./register.png)
+![スマホ表示](./mobile.png)
 
 ## v1.0 Vanilla JS版
 
