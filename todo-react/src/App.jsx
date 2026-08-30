@@ -9,6 +9,7 @@ import SummaryPanel from './SummaryPanel';
 import CalendarView from './CalendarView';
 import { CATEGORIES } from './categories';
 import { inputClass, btnPrimaryClass } from './ui';
+import { API_BASE_URL } from './api';
 
 function sortByDueDate(list) {
   return [...list].sort((a, b) => {
@@ -36,7 +37,7 @@ function App() {
   // ログイン後にTodo一覧を取得
   useEffect(() => {
     if (!token) return;
-    fetch('https://todo-app-django-sjp6.onrender.com/api/todos/', {
+    fetch(`${API_BASE_URL}/api/todos/`, {
       headers: { 'Authorization': `Bearer ${token}` },
     })
       .then((res) => (res.ok ? res.json() : []))
@@ -48,7 +49,7 @@ function App() {
 
   // Todo追加
   function addTodo({ title, category, dueDate }) {
-    fetch('https://todo-app-django-sjp6.onrender.com/api/todos/', {
+    fetch(`${API_BASE_URL}/api/todos/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -62,7 +63,7 @@ function App() {
 
   // Todo削除
   function deleteTodo(todoToDelete) {
-    fetch(`https://todo-app-django-sjp6.onrender.com/api/todos/${todoToDelete.id}/`, {
+    fetch(`${API_BASE_URL}/api/todos/${todoToDelete.id}/`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` },
     }).then(() => setTodos(todos.filter((t) => t !== todoToDelete)));
@@ -70,7 +71,7 @@ function App() {
 
   // 完了切り替え
   function toggleTodo(todo) {
-    fetch(`https://todo-app-django-sjp6.onrender.com/api/todos/${todo.id}/`, {
+    fetch(`${API_BASE_URL}/api/todos/${todo.id}/`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -84,7 +85,7 @@ function App() {
 
   // タイトル編集
   function editTodo(todo, newTitle) {
-    fetch(`https://todo-app-django-sjp6.onrender.com/api/todos/${todo.id}/`, {
+    fetch(`${API_BASE_URL}/api/todos/${todo.id}/`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',

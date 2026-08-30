@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { inputClass, btnPrimaryClass } from './ui';
+import { API_BASE_URL } from './api';
 
 function Login({ onLogin, onShowRegister }) {
   const [username, setUsername] = useState('');
@@ -13,7 +14,7 @@ function Login({ onLogin, onShowRegister }) {
       return;
     }
     setLoading(true);
-    const response = await fetch('https://todo-app-django-sjp6.onrender.com/api/token/', {
+    const response = await fetch(`${API_BASE_URL}/api/token/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
