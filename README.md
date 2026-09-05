@@ -4,7 +4,9 @@
 バックエンドはDjango REST Frameworkで構築し、フロントエンドとAPIで連携しています。
 
 ##　デモ
-https://todo-app-django-tawny.vercel.app
+http://ec2-3-113-250-192.ap-northeast-1.compute.amazonaws.com
+
+AWS EC2上にNginx + Gunicorn + PostgreSQLで構築した本番環境です。構成の詳細は[docs/deploy.md](./docs/deploy.md)を参照してください。
 
 
 ## v2.0 React版 (最新)
@@ -26,9 +28,18 @@ https://todo-app-django-tawny.vercel.app
 - Python
 - Django
 - Django REST Framework
-- SQLite
+- SQLite（ローカル開発）/ PostgreSQL（本番）
 - React
 - Tailwind CSS
+
+## インフラ構成
+
+- AWS EC2（Amazon Linux 2023 / t3.micro）
+- Nginx（リバースプロキシ・フロントエンドの静的配信）
+- Gunicorn（Django用WSGIサーバー、systemdで常駐管理）
+- PostgreSQL 17（本番データベース）
+
+詳細な構築手順・デプロイ手順は[docs/deploy.md](./docs/deploy.md)にまとめています。
 
 ## 機能一覧
 
@@ -121,4 +132,4 @@ https://todo-app-django-tawny.vercel.app
 - カレンダー機能の追加
 - ドラッグ&ドロップでカラム間移動を追加
 - AIとAPIを連携させ、タスク遂行に関するアドバイスを行う機能の実装
-- デプロイ
+- HTTPS化（現状EC2はHTTPのみ）
