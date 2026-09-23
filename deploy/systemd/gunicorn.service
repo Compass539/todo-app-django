@@ -1,0 +1,13 @@
+[Unit]
+Description=TaskBoard Gunicorn daemon
+After=network.target
+
+[Service]
+User=taskboard
+Group=taskboard
+WorkingDirectory=/opt/taskboard/app
+ExecStart=/opt/taskboard/app/venv/bin/gunicorn --workers 2 --bind 127.0.0.1:8000 config.wsgi:application
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
