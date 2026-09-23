@@ -65,6 +65,7 @@ Nginx (:80)
 期限が近いタスクをDiscordに通知するDjangoカスタムコマンド（`manage.py alert`）を、systemd timerで毎朝8時（JST）に自動実行する。
 
 当初は手動実行だったが、「後回しを防ぐ」という機能の目的上、人が実行しないと動かないのでは意味がないため自動化した。cronではなくsystemd timerを選んだ理由は、Gunicornをすでにsystemdで管理しており構成を揃えられること、実行結果が`journalctl`で追えることの2点。
+ユニットファイルの実体は `deploy/systemd/` にも配置し、バージョン管理している。
 
 **/etc/systemd/system/taskboard-alert.service**
 
