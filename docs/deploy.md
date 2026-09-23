@@ -42,6 +42,7 @@ Nginx (:80)
 - セキュリティグループの22番ポート（SSH）は自分のIPアドレスのみに限定
 - Nginxの`allow`/`deny`で`/admin/`を自宅IPのみに制限
 - AWSの請求アラートを設定し、想定外の課金を検知できるようにした
+- `.env`のパーミッションを`640`に設定（所有者:ec2-user / グループ:taskboard）。`SECRET_KEY`やDB接続情報、Discord Webhook URLを含むため、その他ユーザーからは読めないようにした
 
 ## 4. トラブルシューティング
 
@@ -59,11 +60,69 @@ Nginx (:80)
 - インスタンス再起動後にサービスが自動起動することを確認
 - `curl`で`/admin/`等にアクセスし、想定通り302（リダイレクト）応答が返ることを確認
 
+## 6. 定期実行（Discord期限通知）
+
+期限が近いタスクをDiscordに通知するDjangoカスタムコマンド（`manage.py alert`）を、systemd timerで毎朝8時（JST）に自動実行する。
+
+当初は手動実行だったが、「後回しを防ぐ」という機能の目的上、人が実行しないと動かないのでは意味がないため自動化した。cronではなくsystemd timerを選んだ理由は、Gunicornをすでにsystemdで管理しており構成を揃えられること、実行結果が`journalctl`で追えることの2点。
+
+**/etc/systemd/system/taskboard-alert.service**
+
+```ini
+[Unit]
+Description=TaskBoard deadline alert to Discord
+Wants=network-online.target
+After=network-online.target postgresql.service
+
+[Service]
+Type=oneshot
+User=taskboard
+Group=taskboard
+WorkingDirectory=/opt/taskboard/app
+ExecStart=/opt/taskboard/app/venv/bin/python /opt/taskboard/app/manage.py alert
+```
+
+**/etc/systemd/system/taskboard-alert.timer**
+
+```ini
+[Unit]
+Description=Run TaskBoard deadline alert every morning
+
+[Timer]
+OnCalendar=*-*-* 08:00:00 Asia/Tokyo
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+設定のポイント:
+
+- `Type=oneshot` — 常駐せず実行して終わるサービス。完了後に`inactive (dead)`になるのが正常な状態で、Gunicornの`active (running)`とは意味が異なる
+- `WorkingDirectory=/opt/taskboard/app` — **必須**。環境変数はsystemdではなく、この位置に置いた`.env`をPython側が読み込む構成のため、作業ディレクトリが違うと環境変数を取得できない
+- `Persistent=true` — サーバー停止中に実行時刻を過ぎた場合、起動後に実行する。通知の取りこぼしを防ぐ
+- `[Install]`セクションを持たない — タイマーから呼ばれる側なので、`enable`する対象はタイマーのみ
+- サーバーのタイムゾーンはUTCのため、`systemctl list-timers`の`NEXT`は`23:00 UTC`と表示される（= 翌朝8:00 JST）
+
+**ハマった点**: 普段のシェルでは通っていた`manage.py alert`が、`sudo -u taskboard`で実行すると`DISCORD_WEBHOOK_URL`が`None`になり`MissingSchema`エラーで失敗した。原因は、EC2側の`.env`に該当キーを設定し忘れていたこと。systemdはログインシェルの環境を引き継がないため、実行ユーザーを合わせた状態で事前に手動検証したことで、タイマー設定前に発見できた。
+
+有効化と確認:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl start taskboard-alert.service      # 手動テスト
+sudo systemctl enable --now taskboard-alert.timer
+systemctl list-timers taskboard-alert.timer       # NEXTを確認
+journalctl -u taskboard-alert.service -n 30       # 実行結果を確認
+```
+
 ## 更新履歴
 
 - **8/9**: 上記の初期構築を実施（DBはこの時点ではSQLite）
 - **8/11**: PostgreSQL 17へ移行。Node.js導入とReactビルド環境整備、フロントエンドがハードコードしていたRenderの本番URLを`sed`で相対パス（`/api/...`）に一時的に書き換えて`npm run build`（この時点ではgit未コミットの暫定対応）
 - **9/5**: `redesigin/organic-1d`（Organicデザインシステムへのリデザイン）を`main`にマージ。`todo-react/src/api.js`の`API_BASE_URL`判定を`||`から`??`に修正し、`VITE_API_BASE_URL=""`（空文字）を明示指定した場合に相対パスとして扱えるよう変更。EC2側では8/11の暫定パッチを`git stash`でバックアップしてから`git pull`し、`todo-react/.env.production`に`VITE_API_BASE_URL=`を設定して`npm ci && npm run build`。ビルド成果物にRenderのURLが含まれず`/api/...`の相対パスになっていること、`/api/todos/`が401を返すことを確認
+- **9/23**: Discord期限通知をsystemd timerで自動化（毎朝8時JST）。あわせて`.env`に`DISCORD_WEBHOOK_URL`を追加し、パーミッションを644→640に是正
+
 
 ## 通常のデプロイ手順（コード更新時）
 
@@ -97,6 +156,10 @@ sudo nginx -t
 sudo systemctl reload nginx
 
 sudo systemctl status postgresql
+
+sudo systemctl list-timers taskboard-alert.timer
+sudo systemctl start taskboard-alert.service      # 手動で1回実行
+sudo journalctl -u taskboard-alert.service -n 50
 ```
 
 ## .env に設定している主なキー（値は非公開）
@@ -112,3 +175,4 @@ sudo systemctl status postgresql
 
 - 現状HTTP配信のみ（TLS未設定）。独自ドメイン取得とLet's Encrypt等でのHTTPS化が必要
 - EC2にElastic IPを割り当てていないため、インスタンス再起動時にパブリックDNS/IPが変わる可能性がある
+- 通知の送信失敗時にリトライや再通知の仕組みがない。現状は`journalctl`で事後確認できるのみで、失敗をプッシュで検知する仕組みは未実装
