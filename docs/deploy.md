@@ -172,8 +172,14 @@ sudo journalctl -u taskboard-alert.service -n 50
 - `DATABASE_URL`（PostgreSQL接続文字列）
 - `DISCORD_WEBHOOK_URL`
 
+## 構成上の特徴
+
+- 単一 t3.micro 上で WordPress(LEMP) と Django を nginx の Virtual Host で共存させている
+- DuckDNS + Let's Encrypt で HTTPS 化済み（証明書は certbot の systemd timer で自動更新）
+
 ## 既知の制約・今後の課題
 
-- 現状HTTP配信のみ（TLS未設定）。独自ドメイン取得とLet's Encrypt等でのHTTPS化が必要
-- EC2にElastic IPを割り当てていないため、インスタンス再起動時にパブリックDNS/IPが変わる可能性がある
-- 通知の送信失敗時にリトライや再通知の仕組みがない。現状は`journalctl`で事後確認できるのみで、失敗をプッシュで検知する仕組みは未実装
+- 自動バックアップが未整備
+- メール送信ができない（EC2 が 25番ポートを制限しているため、Contact Form 7 は動作しない）
+- 通知の送信失敗時にリトライや再通知の仕組みがない。現状は `journalctl` で事後確認できるのみで、失敗をプッシュで検知する仕組みは未実装
+- `ALLOWED_HOSTS` のように、インフラ変更時に追従が必要な設定が手動管理になっている
