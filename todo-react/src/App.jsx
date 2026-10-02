@@ -8,7 +8,7 @@ import { Rail, MobileTabBar } from './Rail';
 import SummaryPanel from './SummaryPanel';
 import CalendarView from './CalendarView';
 import { CATEGORIES } from './categories';
-import { inputClass, btnPrimaryClass } from './ui';
+import { inputClass, btnPrimaryClass, btnSecondaryClass } from './ui';
 import { API_BASE_URL } from './api';
 
 function sortByDueDate(list) {
@@ -33,6 +33,8 @@ function App() {
   const [view,          setView]          = useState('list');
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [selectedDate,  setSelectedDate]  = useState(() => new Date());
+  // タスク完了状態が、完了、未完了、すべてを表示する
+  const [statusFilter,   setStatusFilter]   = useState('all');
 
   // ログイン後にTodo一覧を取得
   useEffect(() => {
@@ -119,10 +121,15 @@ function App() {
       t.category === activeKey &&
       t.title.toLowerCase().includes(searchText.toLowerCase())
   );
-  const overdueTodos   = sortByDueDate(filteredTodos.filter((t) => isOverdue(t)));
-  const upcomingTodos  = sortByDueDate(filteredTodos.filter((t) => !t.completed && !isOverdue(t)));
-  const completedTodos = sortByDueDate(filteredTodos.filter((t) => t.completed));
+  const visibleTodos   = filteredTodos.filter((t) => {
+    if (statusFilter === 'completed') {return t.completed}
+    if (statusFilter === 'incomplete') {return !t.completed}
+    return true;});
 
+  const overdueTodos   = sortByDueDate(visibleTodos.filter((t) => isOverdue(t)));
+  const upcomingTodos  = sortByDueDate(visibleTodos.filter((t) => !t.completed && !isOverdue(t)));
+  const completedTodos = sortByDueDate(visibleTodos.filter((t) => t.completed));
+  
   function openAddForm() {
     setView('list');
     setIsAdding(true);
@@ -163,6 +170,17 @@ function App() {
                 {filteredTodos.length}タスク · 未完了 {filteredTodos.filter((t) => !t.completed).length} ·
                 完了 {filteredTodos.filter((t) => t.completed).length}
               </p>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => setStatusFilter('all')} className={`${statusFilter === 'all' ? btnPrimaryClass : btnSecondaryClass}`}>
+                  すべて 
+                </button>
+                <button type="button" onClick={() => setStatusFilter('completed')} className={`${statusFilter === 'completed' ? btnPrimaryClass : btnSecondaryClass}`}>
+                  完了
+                </button>
+                <button type="button" onClick={() => setStatusFilter('incomplete')} className={`${statusFilter === 'incomplete' ? btnPrimaryClass : btnSecondaryClass}`}>
+                  未完了 
+                </button>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <input
