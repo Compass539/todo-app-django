@@ -4,7 +4,7 @@
 バックエンドはDjango REST Frameworkで構築し、フロントエンドとAPIで連携しています。
 
 ##　デモ
-http://ec2-3-113-250-192.ap-northeast-1.compute.amazonaws.com
+https://taskboard-compass.duckdns.org
 
 AWS EC2上にNginx + Gunicorn + PostgreSQLで構築した本番環境です。構成の詳細は[docs/deploy.md](./docs/deploy.md)を参照してください。
 
@@ -129,7 +129,6 @@ AWS EC2上にNginx + Gunicorn + PostgreSQLで構築した本番環境です。�
 
 ## 今後の展望
 
-- カレンダー機能の追加
+
 - ドラッグ&ドロップでカラム間移動を追加
 - AIとAPIを連携させ、タスク遂行に関するアドバイスを行う機能の実装
-- HTTPS化（現状EC2はHTTPのみ）
